@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { connectDB } from './data/store.js';
+import { connectDB, dbService } from './data/store.js';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
@@ -46,6 +46,34 @@ app.get('/api/health', (req, res) => {
     project: 'Centralized Scientific Instrument Booking & Utilization Tracking System (2-Role Auth)',
     timestamp: new Date().toISOString(),
   });
+});
+
+// Database inspection endpoint
+app.get('/api/database', async (req, res) => {
+  try {
+    const isConnected = dbService.getIsConnected();
+    const users = await dbService.getAllUsers();
+    const instruments = await dbService.getAllInstruments();
+    const bookings = await dbService.getAllBookings();
+    res.json({
+      status: 'online',
+      databaseEngine: isConnected ? 'MongoDB (Local / Atlas)' : 'Resilient Mongoose In-Memory Datastore',
+      databaseName: 'scientific_instrument_booking',
+      isConnected,
+      stats: {
+        usersCount: users.length,
+        instrumentsCount: instruments.length,
+        bookingsCount: bookings.length,
+      },
+      collections: {
+        users,
+        instruments,
+        bookings,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 if (process.env.NODE_ENV !== 'test') {
